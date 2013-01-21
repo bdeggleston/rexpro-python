@@ -232,16 +232,27 @@ class ScriptRequest(RexProMessage):
         return super(ScriptRequest, self).get_message_list() + [
             self.language,
             self.script.encode('utf-8'),
-            self.serialize_parameters()
+            msgpack.dumps(self.params)
         ]
 
-class ConsoleScriptResponse(RexProMessage):
+class MsgPackScriptResponse(RexProMessage):
 
-    def __init__(self, data):
-        self.data = data
+    def __init__(self, results, bindings, **kwargs):
+        super(MsgPackScriptResponse, self).__init__(**kwargs)
+        self.results = results
+        self.bindings = bindings
 
     @classmethod
     def deserialize(cls, data):
         message = msgpack.loads(data)
-        x=1
-    pass
+        version, flag, session, request, results, bindings = message
+
+        #deserialize the results
+        results = msgpack.loads(results)
+
+        return cls(
+            version=version,
+            flag=flag,
+            results=results,
+            bindings=bindings
+        )

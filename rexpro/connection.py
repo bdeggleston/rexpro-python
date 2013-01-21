@@ -12,7 +12,11 @@ from rexpro import utils
 
 class RexProConnection(object):
 
-    def __init__(self, host, port, graph_name, channel=1, username='', password=''):
+    #determines which format rexster returns data in
+    # 1 is a string format for consoles
+    # 2 is a msgpack format, which we want
+    CHANNEL = 2
+    def __init__(self, host, port, graph_name, username='', password=''):
         """
         Connection constructor
 
@@ -22,8 +26,6 @@ class RexProConnection(object):
         :type port: int
         :param graph_name: the graph to connect to
         :type graph_name: str
-        :param channel: the channel to open the connection on
-        :type channel: int
         :param username: the username to use for authentication (optional)
         :type username: str
         :param password: the password to use for authentication (optional)
@@ -32,7 +34,6 @@ class RexProConnection(object):
         self.host = host
         self.port = port
         self.graph_name = graph_name
-        self.channel = channel
         self.username = username
         self.password = password
 
@@ -52,7 +53,7 @@ class RexProConnection(object):
         """ Creates a session with rexster and creates the graph object """
         self._send_message(
             messages.SessionRequest(
-                channel=self.channel,
+                channel=self.CHANNEL,
                 username=self.username,
                 password=self.password
             )
@@ -94,7 +95,7 @@ class RexProConnection(object):
         type_map = {
             MessageTypes.ERROR: messages.ErrorResponse,
             MessageTypes.SESSION_RESPONSE: messages.SessionResponse,
-            MessageTypes.CONSOLE_SCRIPT_RESPONSE: messages.ConsoleScriptResponse
+            MessageTypes.MSGPACK_SCRIPT_RESPONSE: messages.MsgPackScriptResponse
         }
 
         if msg_type not in type_map:
@@ -160,3 +161,5 @@ class RexProConnection(object):
         response = self._get_response()
         if isinstance(response, messages.ErrorResponse):
             raise exceptions.RexProScriptException(response.message)
+
+        return response.results
