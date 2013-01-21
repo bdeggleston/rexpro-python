@@ -103,10 +103,9 @@ class ErrorResponse(RexProMessage):
 
     @classmethod
     def deserialize(cls, data):
-        return cls(
-
-        )
-    pass
+        message = msgpack.loads(data)
+        ver, flag, session, request, msg = message
+        return cls(message=msg)
 
 class SessionRequest(RexProMessage):
     """
