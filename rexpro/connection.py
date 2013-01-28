@@ -1,10 +1,9 @@
-from rexpro.exceptions import RexProConnectionException, RexProScriptException
-import rexpro.utils
-
 __author__ = 'bdeggleston'
 
 from contextlib import contextmanager
+from hashlib import md5
 from socket import socket
+from textwrap import dedent
 
 from rexpro import exceptions
 from rexpro import messages
@@ -61,11 +60,13 @@ class RexProConnection(object):
         session = self._get_response()
         self._session_key = session.session_key
 
-        self.execute(
+        results = self.execute(
             script='g = rexster.getGraph(graphname)',
             params={'graphname': self.graph_name},
             isolate=False
         )
+        if not results:
+            raise exceptions.RexProConnectionException("could not connect to graph '{}'".format(self.graph_name))
 
 
     def _send_message(self, msg):
@@ -99,13 +100,13 @@ class RexProConnection(object):
         }
 
         if msg_type not in type_map:
-            raise RexProConnectionException("can't deserialize message type {}".format(msg_type))
+            raise exceptions.RexProConnectionException("can't deserialize message type {}".format(msg_type))
         return type_map[msg_type].deserialize(response)
 
     def open_transaction(self):
         """ opens a transaction """
         if self._in_transaction:
-            raise RexProScriptException("transaction is already open")
+            raise exceptions.RexProScriptException("transaction is already open")
         self.execute(
             script='g.stopTransaction(FAILURE)',
             isolate=False
@@ -119,8 +120,8 @@ class RexProConnection(object):
         :param success: indicates which status to close the transaction with, True will commit the changes, False will roll them back
         :type success: bool
         """
-        if self._in_transaction:
-            raise RexProScriptException("transaction is not open")
+        if not self._in_transaction:
+            raise exceptions.RexProScriptException("transaction is not open")
         self.execute(
             script='g.stopTransaction({})'.format('SUCCESS' if success else 'FAILURE'),
             isolate=False
@@ -137,7 +138,7 @@ class RexProConnection(object):
         yield
         self.close_transaction()
 
-    def execute(self, script, params={}, isolate=True):
+    def execute(self, script, params={}, isolate=True, pretty=False):
         """
         executes the given gremlin script with the provided parameters
 
@@ -147,13 +148,24 @@ class RexProConnection(object):
         :type params: dictionary
         :param isolate: wraps the script in a closure so any variables set aren't persisted for the next execute call
         :type isolate: bool
+        :param pretty: will dedent the script if set to True
+        :type pretty: bool
 
         :rtype: list
         """
+        query_script = dedent(script) if pretty else script
+        if isolate:
+            closure_name = 'q_{}'.format(md5(query_script).hexdigest())
+            query_script = '\n'.join([
+                'def %s = {' % closure_name,
+                query_script,
+                '}',
+                '%s()' % closure_name
+            ])
 
         self._send_message(
             messages.ScriptRequest(
-                script=script,
+                script=query_script,
                 params=params,
                 session_key=self._session_key
             )
