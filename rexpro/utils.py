@@ -22,7 +22,7 @@ def int_from_32bit_array(val):
     """
     rval = 0
     for fragment in bytearray(val):
-        rval |= fragment
         rval <<= 8
+        rval |= fragment
     return rval
 
