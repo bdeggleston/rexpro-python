@@ -1,3 +1,5 @@
+import rexpro.exceptions
+
 __author__ = 'bdeggleston'
 
 from unittest import skip
@@ -5,15 +7,20 @@ from unittest import skip
 from rexpro.tests.base import BaseRexProTestCase
 
 from rexpro.connection import RexProConnection
+from rexpro import exceptions
 
 class TestConnection(BaseRexProTestCase):
 
-    @skip
     def test_connection_success(self):
         """
         Development test to aid in debugging
         """
         conn = self.get_connection()
+
+    def test_attempting_to_connect_to_an_invalid_graphname_raises_exception(self):
+        """ Attempting to connect to a nonexistant graph should raise a RexProConnectionExeption """
+        with self.assertRaises(exceptions.RexProConnectionException):
+            self.get_connection(graphname='nothing')
 
     @skip
     def test_invalid_connection_info_raises_exception(self):
@@ -41,15 +48,6 @@ class TestQueries(BaseRexProTestCase):
             params={'values':p}
         )
 
-        test_data = {
-#            'null_value': None,
-            'int_value': 56,
-#            'float_value': 3.14,
-            'str_value': 'yea boyeeee',
-#            'list_value': [1, None, 'blake'],
-#            'dict_value': {'new':'name', 1:2}
-        }
-
         #test string
         data = e('yea boyeeee')
         assert data== 'yea boyeeee'
@@ -62,19 +60,57 @@ class TestQueries(BaseRexProTestCase):
         data = e(3.14)
         assert data == 3.14
 
-        #test list
-        #TODO: fix [ERROR] ScriptFilter - org.msgpack.MessageTypeException
-#        data = e([1,2])
-#        assert data == [1,2]
-
         #test dict
-        #TODO: fix [ERROR] ScriptFilter - org.msgpack.MessageTypeException
-#        data = e({'blake':'eggleston'})
-#        assert data == {'blake':'eggleston'}
+        data = e({'blake':'eggleston'})
+        assert data == {'blake':'eggleston'}
 
         #test none
-        #TODO fix rexster's null handling exception here
         data = e(None)
         assert data is None
 
-        #TODO: return error response when there's an exception internally
+        #test list
+        data = e([1,2])
+        assert data == tuple([1,2])
+
+    def test_query_isolation(self):
+        """ Test that variables defined in one query are not available in subsequent queries """
+        conn = self.get_connection()
+
+        conn.execute(
+            """
+            def one_val = 5
+            one_val
+            """,
+            isolate=True,
+            pretty=True
+        )
+
+        with self.assertRaises(exceptions.RexProScriptException):
+            r = conn.execute(
+                """
+                one_val
+                """,
+                isolate=True
+            )
+
+
+    def test_element_creation(self):
+        """ Tests that vertices and edges can be created and are serialized properly """
+
+        conn = self.get_connection()
+        elements = conn.execute(
+            """
+            def v1 = g.addVertex([prop:6])
+            def v2 = g.addVertex([prop:8])
+            def e = g.addEdge(v1, v2, 'connects', [prop:10])
+            return [v1, v2, e]
+            """
+        )
+        v1, v2, e = elements
+        assert v1['_properties']['prop'] == 6
+        assert v2['_properties']['prop'] == 8
+        assert e['_properties']['prop'] == 10
+
+        assert e['_outV'] == v1['_id']
+        assert e['_inV'] == v2['_id']
+

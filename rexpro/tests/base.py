@@ -10,8 +10,12 @@ class BaseRexProTestCase(TestCase):
     """
     host = 'localhost'
     port = 8184
-    graphname = 'rexpro_test'
+    graphname = 'emptygraph'
 
-    def get_connection(self):
-        return RexProConnection(self.host, self.port, self.graphname)
+    def get_connection(self, host=None, port=None, graphname=None):
+        return RexProConnection(
+            host or self.host,
+            port or self.port,
+            graphname or self.graphname
+        )
 
