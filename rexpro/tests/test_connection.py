@@ -1,20 +1,15 @@
-import rexpro.exceptions
-
 __author__ = 'bdeggleston'
 
 from unittest import skip
 
 from rexpro.tests.base import BaseRexProTestCase
 
-from rexpro.connection import RexProConnection
 from rexpro import exceptions
 
 class TestConnection(BaseRexProTestCase):
 
     def test_connection_success(self):
-        """
-        Development test to aid in debugging
-        """
+        """ Development test to aid in debugging """
         conn = self.get_connection()
 
     def test_attempting_to_connect_to_an_invalid_graphname_raises_exception(self):
@@ -81,7 +76,6 @@ class TestQueries(BaseRexProTestCase):
             def one_val = 5
             one_val
             """,
-            isolate=True,
             pretty=True
         )
 
@@ -89,8 +83,7 @@ class TestQueries(BaseRexProTestCase):
             r = conn.execute(
                 """
                 one_val
-                """,
-                isolate=True
+                """
             )
 
 
@@ -113,4 +106,45 @@ class TestQueries(BaseRexProTestCase):
 
         assert e['_outV'] == v1['_id']
         assert e['_inV'] == v2['_id']
+
+class TestTransactions(BaseRexProTestCase):
+
+    def test_transaction_isolation(self):
+        """ Tests that operations between 2 transactions are isolated """
+        conn1 = self.get_connection()
+        conn2 = self.get_connection()
+
+        if not conn1.graph_features['supportsTransactions']:
+            return
+
+        with conn1.transaction():
+            v1, v2, v3 = conn1.execute(
+                """
+                def v1 = g.addVertex([val:1, str:"vertex 1"])
+                def v2 = g.addVertex([val:2, str:"vertex 2"])
+                def v3 = g.addVertex([val:3, str:"vertex 3"])
+                [v1, v2, v3]
+                """
+            )
+
+        conn1.open_transaction()
+        conn2.open_transaction()
+
+        v1_1 = conn1.execute(
+            """
+            def v1 = g.v(eid)
+            v1.setProperty("str", "v1")
+            v1
+            """,
+            params={'eid':v1['_id']}
+        )
+
+        v1_2 = conn2.execute(
+            """
+            g.v(eid)
+            """,
+            params={'eid':v1['_id']}
+        )
+
+        assert v1_2['_properties']['str'] == 'vertex 1'
 

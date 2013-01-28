@@ -33,7 +33,10 @@ class RexProSocket(socket):
             raise exceptions.RexProConnectionException('socket connection has been closed')
         msg_type = bytearray(msg_type)[0]
         msg_len = utils.int_from_32bit_array(self.recv(4))
-        response = self.recv(msg_len)
+
+        response = ''
+        while len(response) < msg_len:
+            response += self.recv(msg_len)
 
         MessageTypes = messages.MessageTypes
 
@@ -139,6 +142,8 @@ class RexProConnection(object):
         self.password = password
         self.poolsize = poolsize
 
+        self.graph_features = None
+
         #connect to server
         self._pool = RexProConnectionPool(self.host, self.port, self.poolsize)
 
@@ -170,6 +175,7 @@ class RexProConnection(object):
         )
         if not results:
             raise exceptions.RexProConnectionException("could not connect to graph '{}'".format(self.graph_name))
+        self.graph_features = self.execute('g.getFeatures().toMap()')
 
 
     def open_transaction(self):
@@ -195,6 +201,7 @@ class RexProConnection(object):
             script='g.stopTransaction({})'.format('SUCCESS' if success else 'FAILURE'),
             isolate=False
         )
+        self._in_transaction = False
 
 
     @contextmanager
