@@ -118,7 +118,7 @@ class RexProConnection(object):
     # 1 is a string format for consoles
     # 2 is a msgpack format, which we want
     CHANNEL = 2
-    def __init__(self, host, port, graph_name, username='', password='', poolsize=4):
+    def __init__(self, host, port, graph_name, username='', password=''):
         """
         Connection constructor
 
@@ -132,20 +132,18 @@ class RexProConnection(object):
         :type username: str
         :param password: the password to use for authentication (optional)
         :type password: str
-        :param poolsize: the initial connection pool size
-        :type poolsize: int
         """
         self.host = host
         self.port = port
         self.graph_name = graph_name
         self.username = username
         self.password = password
-        self.poolsize = poolsize
 
         self.graph_features = None
 
         #connect to server
-        self._pool = RexProConnectionPool(self.host, self.port, self.poolsize)
+        self._conn = RexProSocket()
+        self._conn.connect((self.host, self.port))
 
         #indicates that we're in a transaction
         self._in_transaction = False
@@ -157,16 +155,15 @@ class RexProConnection(object):
 
     def _open_session(self):
         """ Creates a session with rexster and creates the graph object """
-        with self._pool.contextual_connection() as conn:
-            conn.send_message(
-                messages.SessionRequest(
-                    channel=self.CHANNEL,
-                    username=self.username,
-                    password=self.password
-                )
+        self._conn.send_message(
+            messages.SessionRequest(
+                channel=self.CHANNEL,
+                username=self.username,
+                password=self.password
             )
-            session = conn.get_response()
-            self._session_key = session.session_key
+        )
+        session = self._conn.get_response()
+        self._session_key = session.session_key
 
         results = self.execute(
             script='g = rexster.getGraph(graphname)',
@@ -229,25 +226,24 @@ class RexProConnection(object):
 
         :rtype: list
         """
-        with self._pool.contextual_connection() as conn:
-            query_script = dedent(script) if pretty else script
-            if isolate:
-                closure_name = 'q_{}'.format(md5(query_script).hexdigest())
-                query_script = '\n'.join([
-                    'def %s = {' % closure_name,
-                    query_script,
-                    '}',
-                    '%s()' % closure_name
-                ])
+        query_script = dedent(script) if pretty else script
+        if isolate:
+            closure_name = 'q_{}'.format(md5(query_script).hexdigest())
+            query_script = '\n'.join([
+                'def %s = {' % closure_name,
+                query_script,
+                '}',
+                '%s()' % closure_name
+            ])
 
-            conn.send_message(
-                messages.ScriptRequest(
-                    script=query_script,
-                    params=params,
-                    session_key=self._session_key
-                )
+        self._conn.send_message(
+            messages.ScriptRequest(
+                script=query_script,
+                params=params,
+                session_key=self._session_key
             )
-            response = conn.get_response()
+        )
+        response = self._conn.get_response()
 
         if isinstance(response, messages.ErrorResponse):
             raise exceptions.RexProScriptException(response.message)
