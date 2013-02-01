@@ -47,4 +47,20 @@ with conn.transaction():
     conn.execute("//do some other stuff")
 ```
 
+## Query scoping & global variables
+
+A RexPro connection is basically a connection to a gremlin REPL.
+Queries executed with the RexProConnection's `execute` method are automatically wrapped in a closure before being executed
+to avoid cluttering the global namespace with variables defined in previous queries. A globally available `g` graph object
+is is automatically defined at the beginning of a RexPro session.
+
+If you would like to define additional global variables, don't define variables with a def statement. For example:
+
+```python
+#number will become a global variable for this session
+conn.execute("number = 5")
+
+#another_number is only available for this query
+conn.execute("def another_number = 6")
+```
 
