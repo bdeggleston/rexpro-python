@@ -23,13 +23,23 @@ conn = RexProConnection('localhost', 8184, 'emptygraph')
 #for parameterized queries
 elements = conn.execute(
     """
-    def v1 = g.addVertex([prop:bound_param1]
+    def v1 = g.addVertex([prop:bound_param1])
     def v2 = g.addVertex([prop:bound_param2])
     def e = g.addEdge(v1, v2, 'connects', [prop:bound_param3])
     return [v1, v2, e]
     """,
     {'bound_param1':'b1', 'bound_param2':'b2', 'bound_param3':'b3'}
 )
+
+#the contents of elements will be:
+({'_id': '0', '_properties': {'prop': 'b1'}, '_type': 'vertex'},
+ {'_id': '1', '_properties': {'prop': 'b2'}, '_type': 'vertex'},
+ {'_id': '2',
+  '_inV': '1',
+  '_label': 'connects',
+  '_outV': '0',
+  '_properties': {'prop': 'b3'},
+  '_type': 'edge'})
 ```
 
 ## Transactional Graphs
