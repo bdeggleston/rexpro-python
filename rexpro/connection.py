@@ -1,3 +1,6 @@
+from rexpro.exceptions import RexProConnectionException
+from rexpro.messages import ErrorResponse
+
 __author__ = 'bdeggleston'
 
 from contextlib import contextmanager
@@ -118,7 +121,8 @@ class RexProConnection(object):
     # 1 is a string format for consoles
     # 2 is a msgpack format, which we want
     CHANNEL = 2
-    def __init__(self, host, port, graph_name, username='', password=''):
+
+    def __init__(self, host, port, graph_name, graph_obj_name='g', username='', password=''):
         """
         Connection constructor
 
@@ -159,19 +163,15 @@ class RexProConnection(object):
             messages.SessionRequest(
                 channel=self.CHANNEL,
                 username=self.username,
-                password=self.password
+                password=self.password,
+                graph_name=self.graph_name
             )
         )
-        session = self._conn.get_response()
-        self._session_key = session.session_key
+        response = self._conn.get_response()
+        if isinstance(response, ErrorResponse):
+            raise RexProConnectionException(response.message)
+        self._session_key = response.session_key
 
-        results = self.execute(
-            script='g = rexster.getGraph(graphname)',
-            params={'graphname': self.graph_name},
-            isolate=False
-        )
-        if not results:
-            raise exceptions.RexProConnectionException("could not connect to graph '{}'".format(self.graph_name))
         self.graph_features = self.execute('g.getFeatures().toMap()')
 
 
@@ -211,7 +211,7 @@ class RexProConnection(object):
         yield
         self.close_transaction()
 
-    def execute(self, script, params={}, isolate=True, pretty=False):
+    def execute(self, script, params={}, isolate=True, transaction=True, pretty=False):
         """
         executes the given gremlin script with the provided parameters
 
@@ -221,26 +221,20 @@ class RexProConnection(object):
         :type params: dictionary
         :param isolate: wraps the script in a closure so any variables set aren't persisted for the next execute call
         :type isolate: bool
+        :param transaction: query will be wrapped in a transaction if set to True (default)
+        :type transaction: bool
         :param pretty: will dedent the script if set to True
         :type pretty: bool
 
         :rtype: list
         """
-        query_script = dedent(script) if pretty else script
-        if isolate:
-            closure_name = 'q_{}'.format(md5(query_script).hexdigest())
-            query_script = '\n'.join([
-                'def %s = {' % closure_name,
-                query_script,
-                '}',
-                '%s()' % closure_name
-            ])
-
         self._conn.send_message(
             messages.ScriptRequest(
-                script=query_script,
+                script=script,
                 params=params,
-                session_key=self._session_key
+                session_key=self._session_key,
+                isolate=isolate,
+                in_transaction=transaction
             )
         )
         response = self._conn.get_response()
