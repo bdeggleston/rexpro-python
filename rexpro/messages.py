@@ -295,7 +295,7 @@ class ScriptRequest(RexProMessage):
         return super(ScriptRequest, self).get_message_list() + [
             self.language,
             self.script.encode('utf-8'),
-            msgpack.dumps(self.params)
+            self.params
         ]
 
 class MsgPackScriptResponse(RexProMessage):
@@ -309,9 +309,6 @@ class MsgPackScriptResponse(RexProMessage):
     def deserialize(cls, data):
         message = msgpack.loads(data)
         session, request, meta, results, bindings = message
-
-        #deserialize the results
-        results = msgpack.loads(results)
 
         return cls(
             results=results,
