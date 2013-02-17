@@ -31,10 +31,15 @@ class RexProSocket(socket):
 
         :returns: RexProMessage
         """
-        msg_type = self.recv(1)
-        if not msg_type:
+        msg_version = self.recv(1)
+        if not msg_version:
             raise exceptions.RexProConnectionException('socket connection has been closed')
+        if bytearray([msg_version])[0] != 0:
+            raise exceptions.RexProConnectionException('unsupported protocol version: {}'.format())
+
+        msg_type = self.recv(1)
         msg_type = bytearray(msg_type)[0]
+
         msg_len = utils.int_from_32bit_array(self.recv(4))
 
         response = ''

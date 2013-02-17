@@ -25,13 +25,6 @@ class RexProMessage(object):
 
     MESSAGE_TYPE = None
 
-    def __init__(self, version=0):
-        """
-        :param version:
-        :type version:
-        """
-        self.version = version
-
     def get_meta(self):
         """
         Returns a dictionary of message meta
@@ -44,9 +37,6 @@ class RexProMessage(object):
         Creates and returns the list containing the data to be serialized into a message
         """
         return [
-            #version
-            self.version,
-
             #session
             self.session,
 
@@ -74,10 +64,18 @@ class RexProMessage(object):
         msg = self.get_message_list()
         bytes = msgpack.dumps(msg)
 
-        #add meta data
-        message = bytearray([self.MESSAGE_TYPE])
+        #add protocol version
+        message = bytearray([0])
+
+        #add message type
+        message += bytearray([self.MESSAGE_TYPE])
+
+        #add message length
         message += utils.int_to_32bit_array(len(bytes))
+
+        #add message
         message += bytes
+
         return message
 
     @classmethod
@@ -109,7 +107,7 @@ class ErrorResponse(RexProMessage):
     @classmethod
     def deserialize(cls, data):
         message = msgpack.loads(data)
-        ver, session, request, meta, msg = message
+        session, request, meta, msg = message
         return cls(message=msg, meta=meta)
 
 class SessionRequest(RexProMessage):
@@ -140,7 +138,6 @@ class SessionRequest(RexProMessage):
         self.channel = channel
         self.username = username
         self.password = password
-#        self.session = session_key or uuid4().bytes
         self.session = session_key
         self.graph_name = graph_name
         self.graph_obj_name = graph_obj_name
@@ -178,9 +175,8 @@ class SessionResponse(RexProMessage):
     @classmethod
     def deserialize(cls, data):
         message = msgpack.loads(data)
-        version, session, request, meta, languages = message
+        session, request, meta, languages = message
         return cls(
-            version=version,
             session_key=session,
             meta=meta,
             languages=languages
@@ -312,13 +308,12 @@ class MsgPackScriptResponse(RexProMessage):
     @classmethod
     def deserialize(cls, data):
         message = msgpack.loads(data)
-        version, session, request, meta, results, bindings = message
+        session, request, meta, results, bindings = message
 
         #deserialize the results
         results = msgpack.loads(results)
 
         return cls(
-            version=version,
             results=results,
             bindings=bindings
         )
