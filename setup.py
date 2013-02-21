@@ -4,7 +4,7 @@ from setuptools import setup, find_packages
 #python setup.py register
 #python setup.py sdist upload
 
-version = "0.0.1"
+version = "0.0.2"
 
 long_desc = """
 Experimental Python RexPro interface
