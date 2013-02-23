@@ -194,7 +194,7 @@ class ScriptRequest(RexProMessage):
 
     MESSAGE_TYPE = MessageTypes.SCRIPT_REQUEST
 
-    def __init__(self, script, params, session_key, graph_name=None, graph_obj_name=None, in_session=True,
+    def __init__(self, script, params={}, session_key=None, graph_name=None, graph_obj_name=None, in_session=True,
                  isolate=True, in_transaction=True, language=Language.GROOVY, **kwargs):
         """
         :param script: script to execute
