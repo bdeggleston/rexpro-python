@@ -20,6 +20,12 @@ class MessageTypes(object):
     CONSOLE_SCRIPT_RESPONSE = 4
     MSGPACK_SCRIPT_RESPONSE = 5
 
+class RexProChannel(object):
+    CHANNEL_CONSOLE = 1
+    CHANNEL_MSGPACK = 2
+    CHANNEL_GRAPHSON = 3
+
+
 class RexProMessage(object):
     """ Base class for rexpro message types """
 
@@ -117,7 +123,7 @@ class SessionRequest(RexProMessage):
 
     MESSAGE_TYPE = MessageTypes.SESSION_REQUEST
 
-    def __init__(self, channel=1, graph_name=None, graph_obj_name=None, username='', password='', session_key=None, kill_session=False, **kwargs):
+    def __init__(self, channel=RexProChannel.CHANNEL_MSGPACK, graph_name=None, graph_obj_name=None, username='', password='', session_key=None, kill_session=False, **kwargs):
         """
         :param channel: the channel to open the session on
         :type channel: int
