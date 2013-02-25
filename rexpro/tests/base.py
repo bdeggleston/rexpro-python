@@ -6,7 +6,7 @@ from unittest import TestCase
 
 from rexpro.connection import RexProConnection, RexProSocket
 
-def multi_graph_test(func):
+def multi_graph(func):
     def wrapper(self, *args, **kwargs):
         try:
             return func(self, *args, **kwargs)
@@ -33,12 +33,12 @@ class BaseRexProTestCase(TestCase):
 
     test_graphs = [
         'emptygraph', #Tinkergraph
-        'emptysailgraph', #in memory sail graph
-        'sailgraph', #sail graph
+#        'emptysailgraph', #in memory sail graph
+#        'sailgraph', #sail graph
         'orientdbsample', #OrientDB
         'neo4jsample', #Neo4j
-        'dexsample', #DexGraph
-        'titan', #Titan
+#        'dexsample', #DexGraph
+        'titangraph', #Titan
     ]
 
     def run(self, result=None):
@@ -59,7 +59,7 @@ class BaseRexProTestCase(TestCase):
         return RexProConnection(
             host or self.host,
             port or self.port,
-            graphname or self.graphname
+            graphname or self.default_graphname
         )
 
     def get_socket(self, host=None, port=None):
@@ -73,3 +73,7 @@ class BaseRexProTestCase(TestCase):
     def assertNotErrorResponse(self, response):
         from rexpro.messages import ErrorResponse
         self.assertNotIsInstance(response, ErrorResponse, getattr(response, 'message', ''))
+
+    def assertErrorResponse(self, response):
+        from rexpro.messages import ErrorResponse
+        self.assertIsInstance(response, ErrorResponse, 'ErrorResponse was expected, got: {}'.format(type(response)))

@@ -74,12 +74,12 @@
         </graph>
 
         <graph>
-            <!--<graph-enabled>false</graph-enabled>-->
+            <graph-enabled>true</graph-enabled>
             <graph-name>emptysailgraph</graph-name>
             <graph-type>memorystoresailgraph</graph-type>
         </graph>
         <graph>
-            <!--<graph-enabled>false</graph-enabled>-->
+            <graph-enabled>true</graph-enabled>
             <graph-name>sailgraph</graph-name>
             <graph-type>nativestoresailgraph</graph-type>
             <graph-location>data/sailgraph</graph-location>
@@ -100,7 +100,7 @@
             </extensions>
         </graph>
         <graph>
-            <!--<graph-enabled>false</graph-enabled>-->
+            <graph-enabled>true</graph-enabled>
             <graph-name>neo4jsample</graph-name>
             <graph-type>neo4jgraph</graph-type>
             <graph-location>/tmp/neo4j-graph</graph-location>
@@ -159,7 +159,7 @@
             </extensions>
         </graph>
         <graph>
-            <!--<graph-enabled>false</graph-enabled>-->
+            <graph-enabled>true</graph-enabled>
             <graph-name>dexsample</graph-name>
             <graph-type>dexgraph</graph-type>
             <graph-location>/tmp/graph.dex</graph-location>
@@ -170,28 +170,14 @@
             </extensions>
         </graph>
         <graph>
-            <graph-name>titan</graph-name>
+            <graph-name>titangraph</graph-name>
             <graph-type>com.thinkaurelius.titan.tinkerpop.rexster.TitanGraphConfiguration</graph-type>
-            <graph-read-only>false</graph-read-only>
             <graph-location>/tmp/titan</graph-location>
+            <graph-read-only>false</graph-read-only>
             <properties>
                 <storage.backend>local</storage.backend>
-                <storage.directory>/tmp/titan</storage.directory>
-                <buffer-size>100</buffer-size>
+                <storage.buffer-size>100</storage.buffer-size>
             </properties>
-
-            <extensions>
-                <allows>
-                    <allow>tp:gremlin</allow>
-                </allows>
-            </extensions>
-        </graph>
-        <graph>
-            <graph-enabled>false</graph-enabled>
-            <graph-name>remotetinkergraph</graph-name>
-            <graph-type>rexstergraph</graph-type>
-            <graph-buffer-size>100</graph-buffer-size>
-            <graph-location>http://remoteserver:8182/tinkergraph</graph-location>
             <extensions>
                 <allows>
                     <allow>tp:gremlin</allow>

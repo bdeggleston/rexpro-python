@@ -2,7 +2,7 @@ __author__ = 'bdeggleston'
 
 from unittest import skip
 
-from rexpro.tests.base import BaseRexProTestCase
+from rexpro.tests.base import BaseRexProTestCase, multi_graph
 
 from rexpro import exceptions
 
@@ -32,11 +32,12 @@ class TestConnection(BaseRexProTestCase):
 
 class TestQueries(BaseRexProTestCase):
 
+    @multi_graph
     def test_data_integrity(self):
         """
         Tests that simply being passed through rexster comes unchanged
         """
-        conn = self.get_connection()
+        conn = self.get_connection(graphname=self.graphname)
 
         e = lambda p: conn.execute(
             script='values',
