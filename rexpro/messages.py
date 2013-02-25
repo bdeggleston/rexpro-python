@@ -105,6 +105,15 @@ class RexProMessage(object):
 
 class ErrorResponse(RexProMessage):
 
+    #meta flags
+    INVALID_MESSAGE_ERROR = 0
+    INVALID_SESSION_ERROR = 1
+    SCRIPT_FAILURE_ERROR = 2
+    AUTH_FAILURE_ERROR = 3
+    GRAPH_CONFIG_ERROR = 4
+    CHANNEL_CONFIG_ERROR = 5
+    RESULT_SERIALIZATION_ERROR = 6
+
     def __init__(self, meta, message, **kwargs):
         super(ErrorResponse, self).__init__(**kwargs)
         self.meta = meta
