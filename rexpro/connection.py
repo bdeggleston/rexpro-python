@@ -1,11 +1,10 @@
 from rexpro.exceptions import RexProConnectionException
 from rexpro.messages import ErrorResponse
 
-__author__ = 'bdeggleston'
-
 from contextlib import contextmanager
 from hashlib import md5
 from Queue import Queue
+import struct
 from socket import socket
 from textwrap import dedent
 
@@ -34,13 +33,20 @@ class RexProSocket(socket):
         msg_version = self.recv(1)
         if not msg_version:
             raise exceptions.RexProConnectionException('socket connection has been closed')
-        if bytearray([msg_version])[0] != 0:
+        if bytearray([msg_version])[0] != 1:
             raise exceptions.RexProConnectionException('unsupported protocol version: {}'.format())
+
+        serializer_type = self.recv(1)
+        if bytearray(serializer_type)[0] != 0:
+            raise exceptions.RexProConnectionException('unsupported serializer version: {}'.format())
+
+        #get padding
+        self.recv(4)
 
         msg_type = self.recv(1)
         msg_type = bytearray(msg_type)[0]
 
-        msg_len = utils.int_from_32bit_array(self.recv(4))
+        msg_len = struct.unpack('!I', self.recv(4))[0]
 
         response = ''
         while len(response) < msg_len:
@@ -51,7 +57,7 @@ class RexProSocket(socket):
         type_map = {
             MessageTypes.ERROR: messages.ErrorResponse,
             MessageTypes.SESSION_RESPONSE: messages.SessionResponse,
-            MessageTypes.MSGPACK_SCRIPT_RESPONSE: messages.MsgPackScriptResponse
+            MessageTypes.SCRIPT_RESPONSE: messages.MsgPackScriptResponse
         }
 
         if msg_type not in type_map:
@@ -122,11 +128,6 @@ class RexProConnectionPool(object):
 
 class RexProConnection(object):
 
-    #determines which format rexster returns data in
-    # 1 is a string format for consoles
-    # 2 is a msgpack format, which we want
-    CHANNEL = 2
-
     def __init__(self, host, port, graph_name, graph_obj_name='g', username='', password=''):
         """
         Connection constructor
@@ -161,12 +162,10 @@ class RexProConnection(object):
         self._session_key = None
         self._open_session()
 
-
     def _open_session(self):
         """ Creates a session with rexster and creates the graph object """
         self._conn.send_message(
             messages.SessionRequest(
-                channel=self.CHANNEL,
                 username=self.username,
                 password=self.password,
                 graph_name=self.graph_name
@@ -178,7 +177,6 @@ class RexProConnection(object):
         self._session_key = response.session_key
 
         self.graph_features = self.execute('g.getFeatures().toMap()')
-
 
     def open_transaction(self):
         """ opens a transaction """
@@ -204,7 +202,6 @@ class RexProConnection(object):
             isolate=False
         )
         self._in_transaction = False
-
 
     @contextmanager
     def transaction(self):

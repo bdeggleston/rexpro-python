@@ -66,7 +66,7 @@ class TestQueries(BaseRexProTestCase):
 
         #test list
         data = e([1,2])
-        assert data == [1,2]
+        assert data == (1,2)
 
     def test_query_isolation(self):
         """ Test that variables defined in one query are not available in subsequent queries """

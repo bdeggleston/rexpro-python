@@ -38,7 +38,7 @@ class BaseRexProTestCase(TestCase):
         'orientdbsample', #OrientDB
         'neo4jsample', #Neo4j
 #        'dexsample', #DexGraph
-        'titangraph', #Titan
+#         'titangraph', #Titan
     ]
 
     def run(self, result=None):
