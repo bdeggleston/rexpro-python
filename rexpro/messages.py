@@ -2,6 +2,7 @@ __author__ = 'bdeggleston'
 
 import json
 import re
+import struct
 from uuid import uuid1, uuid4
 
 import msgpack
@@ -17,13 +18,7 @@ class MessageTypes(object):
     SESSION_REQUEST = 1
     SESSION_RESPONSE = 2
     SCRIPT_REQUEST = 3
-    CONSOLE_SCRIPT_RESPONSE = 4
-    MSGPACK_SCRIPT_RESPONSE = 5
-
-class RexProChannel(object):
-    CHANNEL_CONSOLE = 1
-    CHANNEL_MSGPACK = 2
-    CHANNEL_GRAPHSON = 3
+    SCRIPT_RESPONSE = 5
 
 
 class RexProMessage(object):
@@ -71,13 +66,19 @@ class RexProMessage(object):
         bytes = msgpack.dumps(msg)
 
         #add protocol version
-        message = bytearray([0])
+        message = bytearray([1])
+
+        #add serializer type
+        message += bytearray([0])
+
+        #add padding
+        message += bytearray([0, 0, 0, 0])
 
         #add message type
         message += bytearray([self.MESSAGE_TYPE])
 
         #add message length
-        message += utils.int_to_32bit_array(len(bytes))
+        message += struct.pack('!I', len(bytes))
 
         #add message
         message += bytes
@@ -132,10 +133,8 @@ class SessionRequest(RexProMessage):
 
     MESSAGE_TYPE = MessageTypes.SESSION_REQUEST
 
-    def __init__(self, channel=RexProChannel.CHANNEL_MSGPACK, graph_name=None, graph_obj_name=None, username='', password='', session_key=None, kill_session=False, **kwargs):
+    def __init__(self, graph_name=None, graph_obj_name=None, username='', password='', session_key=None, kill_session=False, **kwargs):
         """
-        :param channel: the channel to open the session on
-        :type channel: int
         :param graph_name: the name of the rexster graph to connect to
         :type graph_name: str
         :param graph_obj_name: the name of the variable to bind the graph object to (defaults to 'g')
@@ -150,7 +149,6 @@ class SessionRequest(RexProMessage):
         :type kill_session: bool
         """
         super(SessionRequest, self).__init__(**kwargs)
-        self.channel = channel
         self.username = username
         self.password = password
         self.session = session_key
@@ -172,10 +170,10 @@ class SessionRequest(RexProMessage):
 
     def get_message_list(self):
         return super(SessionRequest, self).get_message_list() + [
-            self.channel,
             self.username,
             self.password
         ]
+
 
 class SessionResponse(RexProMessage):
 
@@ -209,7 +207,7 @@ class ScriptRequest(RexProMessage):
 
     MESSAGE_TYPE = MessageTypes.SCRIPT_REQUEST
 
-    def __init__(self, script, params={}, session_key=None, graph_name=None, graph_obj_name=None, in_session=True,
+    def __init__(self, script, params=None, session_key=None, graph_name=None, graph_obj_name=None, in_session=True,
                  isolate=True, in_transaction=True, language=Language.GROOVY, **kwargs):
         """
         :param script: script to execute
@@ -233,7 +231,7 @@ class ScriptRequest(RexProMessage):
         """
         super(ScriptRequest, self).__init__(**kwargs)
         self.script = script
-        self.params = params
+        self.params = params or {}
         self.session = session_key
         self.graph_name = graph_name
         self.graph_obj_name = graph_obj_name
@@ -297,7 +295,7 @@ class ScriptRequest(RexProMessage):
         returns a serialization of the supplied parameters
         """
         data = bytearray()
-        for k,v in self.params.items():
+        for k, v in self.params.items():
             key = k.encode('utf-8')
             val = json.dumps(v).encode('utf-8')
             data += utils.int_to_32bit_array(len(key))
@@ -312,6 +310,7 @@ class ScriptRequest(RexProMessage):
             self.script.encode('utf-8'),
             self.params
         ]
+
 
 class MsgPackScriptResponse(RexProMessage):
 
