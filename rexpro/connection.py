@@ -203,6 +203,18 @@ class RexProConnection(object):
         )
         self._in_transaction = False
 
+    def close(self):
+        self._conn.send_message(
+            messages.SessionRequest(
+                session_key=self._session_key,
+                graph_name=self.graph_name,
+                kill_session=True
+            )
+        )
+        response = self._conn.get_response()
+        if isinstance(response, ErrorResponse):
+            raise RexProConnectionException(response.message)
+
     @contextmanager
     def transaction(self):
         """
