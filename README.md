@@ -1,3 +1,5 @@
+rexpro-python is now being maintained by platinummonkey, please direct issues and pull requests to this repo: https://github.com/platinummonkey/rexpro-python
+
 rexpro
 ======
 
